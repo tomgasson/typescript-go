@@ -10803,6 +10803,7 @@ type SourceFile struct {
 	declarationMap   map[string][]*Node
 	nameTableOnce    sync.Once
 	nameTable        map[string]int
+	useSignatureText bool
 }
 
 func (f *NodeFactory) NewSourceFile(opts SourceFileParseOptions, text string, statements *NodeList, endOfFileToken *TokenNode) *Node {
@@ -10856,6 +10857,14 @@ func (node *SourceFile) SetJSDiagnostics(diags []*Diagnostic) {
 
 func (node *SourceFile) JSDocDiagnostics() []*Diagnostic {
 	return node.jsdocDiagnostics
+}
+
+func (node *SourceFile) UseSignatureText() bool {
+	return node.useSignatureText
+}
+
+func (node *SourceFile) SetUseSignatureText(useSignature bool) {
+	node.useSignatureText = useSignature
 }
 
 func (node *SourceFile) SetJSDocDiagnostics(diags []*Diagnostic) {
