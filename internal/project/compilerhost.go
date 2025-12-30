@@ -8,6 +8,7 @@ import (
 	"github.com/microsoft/typescript-go/internal/compiler"
 	"github.com/microsoft/typescript-go/internal/diagnostics"
 	"github.com/microsoft/typescript-go/internal/project/logging"
+	"github.com/microsoft/typescript-go/internal/project/signature"
 	"github.com/microsoft/typescript-go/internal/tsoptions"
 	"github.com/microsoft/typescript-go/internal/tspath"
 	"github.com/microsoft/typescript-go/internal/vfs"
@@ -126,9 +127,22 @@ func (c *compilerHost) GetSourceFile(opts ast.SourceFileParseOptions) *ast.Sourc
 	c.ensureAlive()
 	c.seenFiles.Add(opts.Path)
 	if fh := c.fs.GetFileByPath(opts.FileName, opts.Path); fh != nil {
+		if !fh.IsOverlay() && !tspath.IsDeclarationFileName(opts.FileName) {
+			if sig := c.trySignatureHandle(fh); sig != nil {
+				return c.builder.parseCache.Acquire(NewParseCacheKey(opts, sig.Hash(), sig.Kind()), sig)
+			}
+		}
 		return c.builder.parseCache.Acquire(NewParseCacheKey(opts, fh.Hash(), fh.Kind()), fh)
 	}
 	return nil
+}
+
+func (c *compilerHost) trySignatureHandle(fh FileHandle) FileHandle {
+	sig, ok := signature.Extract([]byte(fh.Content()))
+	if !ok {
+		return nil
+	}
+	return newSignatureFileHandle(fh.FileName(), sig, fh.Kind())
 }
 
 // Trace implements compiler.CompilerHost.
